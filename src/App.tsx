@@ -1,6 +1,13 @@
-import { FormEvent, useMemo, useRef, useState } from 'react'
+import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import { JobCell, CourseCell } from './cells'
+import {
+  detectAndNormalize,
+  type NormalizedJob,
+  type NormalizedCourse,
+  type DetectionResult,
+} from './normalizers'
 
 type MessageType =
   | 'USER'
@@ -15,6 +22,8 @@ interface ChatMessage {
   id: string
   type: MessageType
   content: string
+  jobs?: NormalizedJob[]
+  courses?: NormalizedCourse[]
 }
 
 interface SessionInfoChunk {
@@ -30,6 +39,7 @@ interface StreamChunk {
   end_of_content?: boolean
   message?: string
   messages?: Array<{ type?: string; content?: string }>
+  function_name?: string
   fncalls?: Array<{
     function_name?: string
     function_arguments?: string
@@ -134,11 +144,66 @@ function extractErrorText(value: unknown): string {
   }
 }
 
+/**
+ * Remove markdown table blocks from assistant text.  Keeps all prose
+ * before and after the table (intro sentence, follow-up question, etc.).
+ * A markdown table is a contiguous run of lines that start with `|`.
+ */
+function stripMarkdownTables(text: string): string {
+  const lines = text.split('\n')
+  const filtered = lines.filter((line) => !line.trimStart().startsWith('|'))
+  return filtered.join('\n').replace(/\n{3,}/g, '\n\n').trim()
+}
+
 function getChallengeToken(): string | null {
   const token = import.meta.env.VITE_CHALLENGE_TOKEN as string | undefined
   if (token && token.trim()) return token.trim()
   return null
 }
+
+/* ── Card rendering helpers ──────────────────────────────────────────────── */
+
+function JobCards({ jobs }: { jobs: NormalizedJob[] }) {
+  return (
+    <div className="msg-cards">
+      <p className="msg-cards-heading">Jobs ({jobs.length})</p>
+      {jobs.map((job, i) => (
+        <JobCell
+          key={`${job.url || ''}-${i}`}
+          title={job.title}
+          company={job.company}
+          location={job.location}
+          companyLogo={job.companyLogo || undefined}
+          fitScore={job.fitScore || undefined}
+          url={job.url || undefined}
+          skills={job.skills}
+        />
+      ))}
+    </div>
+  )
+}
+
+function CourseCards({ courses }: { courses: NormalizedCourse[] }) {
+  return (
+    <div className="msg-cards">
+      <p className="msg-cards-heading">Courses ({courses.length})</p>
+      {courses.map((course, i) => (
+        <CourseCell
+          key={`${course.url || ''}-${i}`}
+          title={course.title}
+          provider={course.provider}
+          level={course.level}
+          image={course.image || undefined}
+          rating={course.rating || undefined}
+          price={course.price || undefined}
+          url={course.url || undefined}
+        />
+      ))}
+    </div>
+  )
+}
+
+/* ── App component ───────────────────────────────────────────────────────── */
 
 export default function App() {
   const [debugMode, setDebugMode] = useState(false)
@@ -149,6 +214,13 @@ export default function App() {
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const chatEndRef = useRef<HTMLDivElement | null>(null)
+  const cardsInStreamRef = useRef(false)
+
+  // Auto-scroll to bottom when messages change or live text updates
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [messages, liveAssistantText])
 
   const hiddenDebugCount = useMemo(
     () =>
@@ -184,10 +256,16 @@ export default function App() {
     setInput('')
     setError(null)
     setIsStreaming(true)
+    cardsInStreamRef.current = false
 
     const requestMessage = userMessage.content
     const controller = new AbortController()
     abortRef.current = controller
+
+    // Track the most recent function name from FUNCTION_CALL chunks
+    // so we can use it as context when processing FUNCTION_RETURN.
+    let lastFunctionName: string | null = null
+    let cardsRenderedInResponse = false
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL as string | undefined
@@ -241,13 +319,17 @@ export default function App() {
       }
 
       const appendAssistantMessage = (textValue: string) => {
-        console.log('[challenge][stream][append-message]', textValue)
+        const cleaned = cardsRenderedInResponse
+          ? stripMarkdownTables(textValue)
+          : textValue
+        if (!cleaned.trim()) return
+        console.log('[challenge][stream][append-message]', cleaned)
         setMessages((prev) => [
           ...prev,
           {
             id: crypto.randomUUID(),
             type: 'ASSISTANT',
-            content: textValue,
+            content: cleaned,
           },
         ])
       }
@@ -258,6 +340,21 @@ export default function App() {
         }
         streamedAssistantText = ''
         setLiveAssistantText('')
+      }
+
+      const addCardMessage = (result: DetectionResult) => {
+        if (!result) return
+        const msg: ChatMessage = {
+          id: crypto.randomUUID(),
+          type: 'ASSISTANT',
+          content: '',
+        }
+        if (result.kind === 'jobs') {
+          msg.jobs = result.items as NormalizedJob[]
+        } else {
+          msg.courses = result.items as NormalizedCourse[]
+        }
+        setMessages((prev) => [...prev, msg])
       }
 
       const processParsedChunk = (parsed: unknown) => {
@@ -290,7 +387,39 @@ export default function App() {
           return
         }
 
-        if (type === 'FUNCTION_CALL' || type === 'FUNCTION_RETURN') {
+        if (type === 'FUNCTION_CALL') {
+          // Track function names for context-based detection on FUNCTION_RETURN
+          if (chunk.fncalls && chunk.fncalls.length > 0) {
+            const names = chunk.fncalls
+              .map((fc) => fc.function_name)
+              .filter((n): n is string => !!n)
+            if (names.length > 0) {
+              lastFunctionName = names[names.length - 1]
+            }
+          }
+          setMessages((prev) => [
+            ...prev,
+            {
+              id: crypto.randomUUID(),
+              type,
+              content: JSON.stringify(chunk),
+            },
+          ])
+          return
+        }
+
+        if (type === 'FUNCTION_RETURN') {
+          // Use function_name from the chunk itself, or fall back to tracked context
+          const fnName = chunk.function_name || lastFunctionName
+          const result = detectAndNormalize(fnName, chunk.content)
+
+          if (result && result.items.length > 0) {
+            addCardMessage(result)
+            cardsRenderedInResponse = true
+            cardsInStreamRef.current = true
+          }
+
+          // Always store the raw debug message too
           setMessages((prev) => [
             ...prev,
             {
@@ -413,32 +542,75 @@ export default function App() {
 
       <div className="chat">
         {visibleMessages.map((message) => {
-          const className =
-            message.type === 'USER'
-              ? 'msg user'
-              : message.type === 'FUNCTION_CALL' || message.type === 'FUNCTION_RETURN'
-                ? 'msg debug'
-                : 'msg assistant'
+          const hasCards =
+            (message.jobs && message.jobs.length > 0) ||
+            (message.courses && message.courses.length > 0)
 
-          return (
-            <div key={message.id} className={className}>
-              {message.type === 'USER' ? (
-                message.content
-              ) : (
+          // Card messages: render JobCell / CourseCell components
+          if (hasCards) {
+            return (
+              <div key={message.id}>
+                {message.content ? (
+                  <div className="msg assistant">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {message.content}
+                    </ReactMarkdown>
+                  </div>
+                ) : null}
+                {message.jobs && message.jobs.length > 0 ? (
+                  <JobCards jobs={message.jobs} />
+                ) : null}
+                {message.courses && message.courses.length > 0 ? (
+                  <CourseCards courses={message.courses} />
+                ) : null}
+              </div>
+            )
+          }
+
+          // Debug messages
+          if (message.type === 'FUNCTION_CALL' || message.type === 'FUNCTION_RETURN') {
+            return (
+              <div key={message.id} className="msg debug">
                 <ReactMarkdown remarkPlugins={[remarkGfm]}>
                   {message.content}
                 </ReactMarkdown>
-              )}
+              </div>
+            )
+          }
+
+          // User messages
+          if (message.type === 'USER') {
+            return (
+              <div key={message.id} className="msg user">
+                {message.content}
+              </div>
+            )
+          }
+
+          // Assistant / error messages
+          return (
+            <div key={message.id} className="msg assistant">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {message.content}
+              </ReactMarkdown>
             </div>
           )
         })}
         {liveAssistantText ? (
           <div className="msg assistant">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {liveAssistantText}
+              {cardsInStreamRef.current
+                ? stripMarkdownTables(liveAssistantText)
+                : liveAssistantText}
             </ReactMarkdown>
           </div>
         ) : null}
+        {isStreaming && !liveAssistantText ? (
+          <div className="msg assistant typing-indicator">
+            <span /><span /><span />
+          </div>
+        ) : null}
+        <div ref={chatEndRef} />
       </div>
 
       {error ? <div className="error">{error}</div> : null}

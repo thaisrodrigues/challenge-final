@@ -5,6 +5,7 @@ interface JobCellProps {
   companyLogo?: string
   fitScore?: string
   url?: string
+  skills?: string[]
 }
 
 interface CourseCellProps {
@@ -47,20 +48,30 @@ export function JobCell({
   companyLogo,
   fitScore,
   url,
+  skills,
 }: JobCellProps) {
   return (
     <div className="desktop-cell">
       <div className="cell-media">
-        <Logo src={companyLogo} alt={company} />
+        <Logo src={companyLogo} alt={company || title} />
       </div>
-      <Field label="Title" value={title} />
-      <Field label="Company" value={company} />
-      <Field label="Location" value={location} />
+      <Field label="Title" value={title || 'Untitled'} />
+      <Field label="Company" value={company || 'Unknown'} />
+      <Field label="Location" value={location || 'Not specified'} />
       <Field label="Fit Score" value={fitScore || 'n/a'} />
       {url ? (
         <a className="cell-link" href={url} target="_blank" rel="noreferrer">
           Open job
         </a>
+      ) : null}
+      {skills && skills.length > 0 ? (
+        <div className="cell-skills">
+          {skills.map((skill, i) => (
+            <span key={`${skill}-${i}`} className="skill-tag">
+              {skill}
+            </span>
+          ))}
+        </div>
       ) : null}
     </div>
   )
@@ -78,11 +89,11 @@ export function CourseCell({
   return (
     <div className="desktop-cell">
       <div className="cell-media">
-        <Logo src={image} alt={title} />
+        <Logo src={image} alt={title || 'Course'} />
       </div>
-      <Field label="Title" value={title} />
-      <Field label="Provider" value={provider} />
-      <Field label="Level" value={level} />
+      <Field label="Title" value={title || 'Untitled'} />
+      <Field label="Provider" value={provider || 'Unknown'} />
+      <Field label="Level" value={level || 'Not specified'} />
       <Field label="Rating / Price" value={`${rating || 'n/a'} / ${price || 'n/a'}`} />
       {url ? (
         <a className="cell-link" href={url} target="_blank" rel="noreferrer">
