@@ -47,6 +47,14 @@ This ensured the chat interface feels native to PathPilot's existing product rat
 
 ---
 
+## Known Issue: "Can not create bot title proposal" Error
+
+The backend occasionally returns a `KeyError('content')` error when generating a chat session title. This is a server-side issue, not a client bug. If you encounter it, refresh the page and try again.
+
+![Backend error screenshot](./screenshots/backend-error.png)
+
+---
+
 ## Phase 1: API Observation
 
 Before writing any detection code, I sent 9 distinct queries to the live API and recorded the full NDJSON stream for each. This was the most important phase it determined whether detection would work reliably, because the challenge states that payload shapes are intentionally inconsistent and we cannot control the model prompt.
