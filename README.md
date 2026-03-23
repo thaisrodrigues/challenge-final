@@ -1,5 +1,7 @@
 # Solution Walkthrough
 
+**Live Demo:** [https://path-pilot-challenge-final.vercel.app/](https://path-pilot-challenge-final.vercel.app/)
+
 ## Implementation Summary
 
 This solution builds a real-time chat interface that streams NDJSON responses from PathPilot's API, automatically detects whether the streamed payload contains job listings or course recommendations, normalizes the inconsistent field shapes into a uniform structure, and renders them as interactive card components inline with the conversation. The UI was styled to match PathPilot's actual brand identity, extracted programmatically using the Firecrawl API.
