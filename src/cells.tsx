@@ -50,20 +50,26 @@ export function JobCell({
   url,
   skills,
 }: JobCellProps) {
-  return (
-    <div className="desktop-cell">
+  const inner = (
+    <>
       <div className="cell-media">
         <Logo src={companyLogo} alt={company || title} />
       </div>
       <Field label="Title" value={title || 'Untitled'} />
       <Field label="Company" value={company || 'Unknown'} />
       <Field label="Location" value={location || 'Not specified'} />
-      <Field label="Fit Score" value={fitScore || 'n/a'} />
+      <Field label="Fit" value={fitScore || 'n/a'} />
       {url ? (
-        <a className="cell-link" href={url} target="_blank" rel="noreferrer">
-          Open job
+        <a
+          className="cell-link"
+          href={url}
+          target="_blank"
+          rel="noreferrer"
+          onClick={(e) => e.stopPropagation()}
+        >
+          View →
         </a>
-      ) : null}
+      ) : <span />}
       {skills && skills.length > 0 ? (
         <div className="cell-skills">
           {skills.map((skill, i) => (
@@ -73,8 +79,10 @@ export function JobCell({
           ))}
         </div>
       ) : null}
-    </div>
+    </>
   )
+
+  return <div className="desktop-cell">{inner}</div>
 }
 
 export function CourseCell({
@@ -94,12 +102,12 @@ export function CourseCell({
       <Field label="Title" value={title || 'Untitled'} />
       <Field label="Provider" value={provider || 'Unknown'} />
       <Field label="Level" value={level || 'Not specified'} />
-      <Field label="Rating / Price" value={`${rating || 'n/a'} / ${price || 'n/a'}`} />
+      <Field label="Rating / Price" value={`${rating || 'n/a'} · ${price || 'n/a'}`} />
       {url ? (
         <a className="cell-link" href={url} target="_blank" rel="noreferrer">
-          Open course
+          View →
         </a>
-      ) : null}
+      ) : <span />}
     </div>
   )
 }

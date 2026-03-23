@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { JobCell, CourseCell } from './cells'
@@ -163,11 +163,17 @@ function getChallengeToken(): string | null {
 
 /* ── Card rendering helpers ──────────────────────────────────────────────── */
 
+const INITIAL_VISIBLE = 3
+
 function JobCards({ jobs }: { jobs: NormalizedJob[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? jobs : jobs.slice(0, INITIAL_VISIBLE)
+  const hasMore = jobs.length > INITIAL_VISIBLE
+
   return (
     <div className="msg-cards">
       <p className="msg-cards-heading">Jobs ({jobs.length})</p>
-      {jobs.map((job, i) => (
+      {visible.map((job, i) => (
         <JobCell
           key={`${job.url || ''}-${i}`}
           title={job.title}
@@ -179,15 +185,30 @@ function JobCards({ jobs }: { jobs: NormalizedJob[] }) {
           skills={job.skills}
         />
       ))}
+      {hasMore ? (
+        <button
+          type="button"
+          className="cards-toggle"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          {expanded
+            ? 'Show less'
+            : `Show all ${jobs.length} jobs`}
+        </button>
+      ) : null}
     </div>
   )
 }
 
 function CourseCards({ courses }: { courses: NormalizedCourse[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const visible = expanded ? courses : courses.slice(0, INITIAL_VISIBLE)
+  const hasMore = courses.length > INITIAL_VISIBLE
+
   return (
     <div className="msg-cards">
       <p className="msg-cards-heading">Courses ({courses.length})</p>
-      {courses.map((course, i) => (
+      {visible.map((course, i) => (
         <CourseCell
           key={`${course.url || ''}-${i}`}
           title={course.title}
@@ -199,6 +220,17 @@ function CourseCards({ courses }: { courses: NormalizedCourse[] }) {
           url={course.url || undefined}
         />
       ))}
+      {hasMore ? (
+        <button
+          type="button"
+          className="cards-toggle"
+          onClick={() => setExpanded((prev) => !prev)}
+        >
+          {expanded
+            ? 'Show less'
+            : `Show all ${courses.length} courses`}
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -211,15 +243,27 @@ export default function App() {
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [liveAssistantText, setLiveAssistantText] = useState('')
+  const [liveCards, setLiveCards] = useState<{ jobs: NormalizedJob[]; courses: NormalizedCourse[] }>({ jobs: [], courses: [] })
   const [isStreaming, setIsStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const abortRef = useRef<AbortController | null>(null)
+  const chatRef = useRef<HTMLDivElement | null>(null)
   const chatEndRef = useRef<HTMLDivElement | null>(null)
   const cardsInStreamRef = useRef(false)
+  const isNearBottomRef = useRef(true)
 
-  // Auto-scroll to bottom when messages change or live text updates
+  const handleChatScroll = useCallback(() => {
+    const el = chatRef.current
+    if (!el) return
+    const threshold = 120
+    isNearBottomRef.current =
+      el.scrollHeight - el.scrollTop - el.clientHeight < threshold
+  }, [])
+
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    if (isNearBottomRef.current) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }
   }, [messages, liveAssistantText])
 
   const hiddenDebugCount = useMemo(
@@ -312,13 +356,43 @@ export default function App() {
       let buffer = ''
       let streamedAssistantText = ''
 
+      // Accumulate detected cards so they can be attached to the
+      // assistant text that follows, keeping text above cards.
+      let pendingJobs: NormalizedJob[] = []
+      let pendingCourses: NormalizedCourse[] = []
+
       const appendAssistantChunk = (textChunk: string) => {
         console.log('[challenge][stream][append-chunk]', textChunk)
         streamedAssistantText += textChunk
         setLiveAssistantText(streamedAssistantText)
       }
 
+      const flushPendingCards = (textContent: string) => {
+        const cleaned = cardsRenderedInResponse
+          ? stripMarkdownTables(textContent)
+          : textContent
+
+        const msg: ChatMessage = {
+          id: crypto.randomUUID(),
+          type: 'ASSISTANT',
+          content: cleaned.trim(),
+        }
+        if (pendingJobs.length > 0) msg.jobs = [...pendingJobs]
+        if (pendingCourses.length > 0) msg.courses = [...pendingCourses]
+
+        if (msg.content || msg.jobs || msg.courses) {
+          setMessages((prev) => [...prev, msg])
+        }
+
+        pendingJobs = []
+        pendingCourses = []
+      }
+
       const appendAssistantMessage = (textValue: string) => {
+        if (pendingJobs.length > 0 || pendingCourses.length > 0) {
+          flushPendingCards(textValue)
+          return
+        }
         const cleaned = cardsRenderedInResponse
           ? stripMarkdownTables(textValue)
           : textValue
@@ -337,24 +411,21 @@ export default function App() {
       const flushLiveAssistantText = () => {
         if (streamedAssistantText.trim()) {
           appendAssistantMessage(streamedAssistantText)
+        } else if (pendingJobs.length > 0 || pendingCourses.length > 0) {
+          flushPendingCards('')
         }
         streamedAssistantText = ''
         setLiveAssistantText('')
       }
 
-      const addCardMessage = (result: DetectionResult) => {
+      const accumulateCards = (result: DetectionResult) => {
         if (!result) return
-        const msg: ChatMessage = {
-          id: crypto.randomUUID(),
-          type: 'ASSISTANT',
-          content: '',
-        }
         if (result.kind === 'jobs') {
-          msg.jobs = result.items as NormalizedJob[]
+          pendingJobs.push(...(result.items as NormalizedJob[]))
         } else {
-          msg.courses = result.items as NormalizedCourse[]
+          pendingCourses.push(...(result.items as NormalizedCourse[]))
         }
-        setMessages((prev) => [...prev, msg])
+        setLiveCards({ jobs: [...pendingJobs], courses: [...pendingCourses] })
       }
 
       const processParsedChunk = (parsed: unknown) => {
@@ -414,7 +485,7 @@ export default function App() {
           const result = detectAndNormalize(fnName, chunk.content)
 
           if (result && result.items.length > 0) {
-            addCardMessage(result)
+            accumulateCards(result)
             cardsRenderedInResponse = true
             cardsInStreamRef.current = true
           }
@@ -514,6 +585,7 @@ export default function App() {
     } finally {
       setIsStreaming(false)
       setLiveAssistantText('')
+      setLiveCards({ jobs: [], courses: [] })
       abortRef.current = null
     }
   }
@@ -521,32 +593,48 @@ export default function App() {
   return (
     <div className="app">
       <div className="topbar">
-        <h1>Chat Challenge</h1>
-        <label className="toggle">
-          <span>debugMode</span>
-          <input
-            type="checkbox"
-            checked={debugMode}
-            onChange={(event) => setDebugMode(event.target.checked)}
+        <div className="topbar-brand">
+          <img
+            className="topbar-logo"
+            src="https://pathpilot.ai/pathpilot-logo.svg"
+            alt="PathPilot home"
           />
-        </label>
+          <h1 className="topbar-title">Chat</h1>
+        </div>
+        <div className="topbar-right">
+          <label className="toggle">
+            <span>Debug</span>
+            <input
+              type="checkbox"
+              checked={debugMode}
+              onChange={(event) => setDebugMode(event.target.checked)}
+            />
+          </label>
+        </div>
       </div>
 
-      <div className="meta">Session: {sessionId || 'new'}</div>
-      {!debugMode && hiddenDebugCount > 0 ? (
-        <div className="meta">
-          {hiddenDebugCount} debug event(s) hidden. Turn on `debugMode` to inspect
-          raw function payloads.
-        </div>
-      ) : null}
+      <div className="meta">
+        Session: {sessionId || 'new'}
+        {!debugMode && hiddenDebugCount > 0
+          ? ` · ${hiddenDebugCount} debug event(s) hidden`
+          : null}
+      </div>
 
-      <div className="chat">
+      <div className="chat" ref={chatRef} onScroll={handleChatScroll}>
+        {visibleMessages.length === 0 && !isStreaming ? (
+          <div className="empty-state">
+            <div className="empty-state-icon">💬</div>
+            <p className="empty-state-text">
+              Ask about jobs, courses, or career advice to get started.
+            </p>
+          </div>
+        ) : null}
+
         {visibleMessages.map((message) => {
           const hasCards =
             (message.jobs && message.jobs.length > 0) ||
             (message.courses && message.courses.length > 0)
 
-          // Card messages: render JobCell / CourseCell components
           if (hasCards) {
             return (
               <div key={message.id}>
@@ -567,7 +655,6 @@ export default function App() {
             )
           }
 
-          // Debug messages
           if (message.type === 'FUNCTION_CALL' || message.type === 'FUNCTION_RETURN') {
             return (
               <div key={message.id} className="msg debug">
@@ -578,7 +665,6 @@ export default function App() {
             )
           }
 
-          // User messages
           if (message.type === 'USER') {
             return (
               <div key={message.id} className="msg user">
@@ -587,7 +673,6 @@ export default function App() {
             )
           }
 
-          // Assistant / error messages
           return (
             <div key={message.id} className="msg assistant">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -596,15 +681,31 @@ export default function App() {
             </div>
           )
         })}
-        {liveAssistantText ? (
-          <div className="msg assistant">
-            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-              {cardsInStreamRef.current
-                ? stripMarkdownTables(liveAssistantText)
-                : liveAssistantText}
-            </ReactMarkdown>
-          </div>
+
+        {!liveAssistantText && liveCards.jobs.length > 0 ? (
+          <JobCards jobs={liveCards.jobs} />
         ) : null}
+        {!liveAssistantText && liveCards.courses.length > 0 ? (
+          <CourseCards courses={liveCards.courses} />
+        ) : null}
+        {liveAssistantText ? (
+          <>
+            <div className="msg assistant">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {cardsInStreamRef.current
+                  ? stripMarkdownTables(liveAssistantText)
+                  : liveAssistantText}
+              </ReactMarkdown>
+            </div>
+            {liveCards.jobs.length > 0 ? (
+              <JobCards jobs={liveCards.jobs} />
+            ) : null}
+            {liveCards.courses.length > 0 ? (
+              <CourseCards courses={liveCards.courses} />
+            ) : null}
+          </>
+        ) : null}
+
         {isStreaming && !liveAssistantText ? (
           <div className="msg assistant typing-indicator">
             <span /><span /><span />
@@ -619,11 +720,29 @@ export default function App() {
         <textarea
           value={input}
           onChange={(event) => setInput(event.target.value)}
-          placeholder="Send a message"
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault()
+              if (input.trim() && !isStreaming) {
+                sendMessage(event as unknown as FormEvent)
+              }
+            }
+          }}
+          placeholder="Ask about jobs, courses, or career advice..."
           disabled={isStreaming}
+          rows={1}
         />
         <button type="submit" disabled={isStreaming || !input.trim()}>
-          {isStreaming ? 'Streaming...' : 'Send'}
+          {isStreaming ? (
+            'Sending...'
+          ) : (
+            <>
+              Send
+              <svg className="send-icon" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2.94 5.34a1 1 0 0 1 1.09-.18l12 5.5a1 1 0 0 1 0 1.82l-12 5.5A1 1 0 0 1 2.6 16.6L4.8 11 2.6 5.56a1 1 0 0 1 .34-.22Z" />
+              </svg>
+            </>
+          )}
         </button>
       </form>
     </div>
