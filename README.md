@@ -51,7 +51,7 @@ This ensured the chat interface feels native to PathPilot's existing product rat
 
 The backend occasionally returns a `KeyError('content')` error when generating a chat session title. This is a server-side issue, not a client bug. If you encounter it, refresh the page and try again.
 
-![Backend error screenshot](./screenshots/backend-error.png)
+![Backend error screenshot](https://ef9r8nohindxnq5x.public.blob.vercel-storage.com/backend-error.png)
 
 ---
 
