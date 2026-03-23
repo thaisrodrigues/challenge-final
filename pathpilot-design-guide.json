@@ -1,0 +1,262 @@
+{
+    "data": {
+      "branding": {
+        "colorScheme": "light",
+        "fonts": [
+          {
+            "family": "Varela",
+            "role": "body"
+          },
+          {
+            "family": "Varela Round",
+            "role": "heading"
+          }
+        ],
+        "colors": {
+          "primary": "#6F6C90",
+          "accent": "#170F49",
+          "background": "#FFFFFF",
+          "textPrimary": "#170F49",
+          "link": "#170F49"
+        },
+        "typography": {
+          "fontFamilies": {
+            "primary": "Varela",
+            "heading": "Varela Round"
+          },
+          "fontStacks": {
+            "heading": [
+              "Varela",
+              "ui-sans-serif",
+              "system-ui",
+              "sans-serif"
+            ],
+            "body": [
+              "Varela",
+              "ui-sans-serif",
+              "system-ui",
+              "sans-serif"
+            ],
+            "paragraph": [
+              "Varela",
+              "ui-sans-serif",
+              "system-ui",
+              "sans-serif"
+            ]
+          },
+          "fontSizes": {
+            "h1": "60px",
+            "h2": "16px",
+            "body": "18px"
+          }
+        },
+        "spacing": {
+          "baseUnit": 4,
+          "borderRadius": "8px"
+        },
+        "components": {
+          "buttonPrimary": {
+            "background": "#FFFFFF",
+            "textColor": "#FFFFFF",
+            "borderRadius": "12px",
+            "borderRadiusCorners": {
+              "topLeft": "12px",
+              "topRight": "12px",
+              "bottomRight": "12px",
+              "bottomLeft": "12px"
+            },
+            "shadow": "rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(158, 212, 235, 0.25) 0px 3px 12px 0px, rgba(201, 86, 209, 0.25) 0px 3px 12px 0px"
+          },
+          "buttonSecondary": {
+            "background": "transparent",
+            "textColor": "#FFFFFF",
+            "borderColor": "#FFFFFF",
+            "borderRadius": "12px",
+            "borderRadiusCorners": {
+              "topLeft": "12px",
+              "topRight": "12px",
+              "bottomRight": "12px",
+              "bottomLeft": "12px"
+            },
+            "shadow": "none"
+          }
+        },
+        "images": {
+          "logo": "https://pathpilot.ai/pathpilot-logo.svg",
+          "favicon": "https://pathpilot.ai/favicon.ico?favicon.0272b933.ico",
+          "ogImage": "https://pathpilot.ai/og-image.jpg",
+          "logoHref": "/",
+          "logoAlt": "PathPilot home"
+        },
+        "__llm_logo_reasoning": {
+          "selectedIndex": 0,
+          "reasoning": "Selected #0 because it is visible, located in the header, links to the homepage, and matches the brand name 'PathPilot'.",
+          "confidence": 0.95,
+          "source": "llm"
+        },
+        "__llm_button_reasoning": {
+          "primary": {
+            "index": 2,
+            "text": "Get Started Free",
+            "reasoning": "Button #2 with text 'Get Started Free' is likely the primary CTA due to its action-oriented text and prominence in encouraging user engagement."
+          },
+          "secondary": {
+            "index": 0,
+            "text": "Schedule Demo",
+            "reasoning": "Button #0 'Schedule Demo' is selected as secondary due to its transparent background, making it less visually prominent than the primary CTA."
+          },
+          "confidence": 0.9
+        },
+        "personality": {
+          "tone": "modern",
+          "energy": "medium",
+          "targetAudience": "career-focused professionals"
+        },
+        "designSystem": {
+          "framework": "tailwind",
+          "componentLibrary": ""
+        },
+        "confidence": {
+          "buttons": 0.9,
+          "colors": 0.9,
+          "overall": 0.9
+        },
+        "__llm_metadata": {
+          "logoSelection": {
+            "llmCalled": true,
+            "llmSucceeded": true,
+            "finalSource": "llm",
+            "rawLogoSelection": {
+              "selectedLogoIndex": 0,
+              "selectedLogoReasoning": "Selected #0 because it is visible, located in the header, links to the homepage, and matches the brand name 'PathPilot'.",
+              "confidence": 0.95
+            }
+          },
+          "buttonClassification": {
+            "llmCalled": true,
+            "llmSucceeded": true
+          }
+        }
+      },
+      "metadata": {
+        "ogImage": "https://pathpilot.ai/og-image.jpg",
+        "creator": "PathPilot",
+        "googlebot": "index, follow, max-video-preview:-1, max-image-preview:large, max-snippet:-1",
+        "ogTitle": "PathPilot - AI-Powered Career Development",
+        "twitter:description": "Free AI career coaching for job seekers. Scalable career services for organizations.",
+        "twitter:image": "https://pathpilot.ai/og-image.jpg",
+        "og:title": "PathPilot - AI-Powered Career Development",
+        "keywords": "AI career coach,career development,job search,career services,workforce development,NACE competencies",
+        "og:url": "https://pathpilot.ai",
+        "author": "PathPilot",
+        "language": "en",
+        "og:description": "Free AI career coaching for job seekers. Scalable career services for organizations.",
+        "ogDescription": "Free AI career coaching for job seekers. Scalable career services for organizations.",
+        "title": "PathPilot - AI-Powered Career Development",
+        "og:image": "https://pathpilot.ai/og-image.jpg",
+        "twitter:title": "PathPilot - AI-Powered Career Development",
+        "ogUrl": "https://pathpilot.ai",
+        "next-size-adjust": "",
+        "format-detection": "telephone=no, address=no, email=no",
+        "twitter:card": "summary_large_image",
+        "publisher": "PathPilot",
+        "viewport": [
+          "width=device-width, initial-scale=1",
+          "width=device-width, initial-scale=1"
+        ],
+        "robots": "index, follow",
+        "description": "Free AI career coaching for job seekers. Scalable career services for organizations. Get personalized guidance, job matching, interview prep, and skills assessment. Available 24/7.",
+        "theme-color": "#C956D1",
+        "favicon": "https://pathpilot.ai/favicon.ico?favicon.0272b933.ico",
+        "scrapeId": "019d1b66-eb49-720a-8af1-b7e83950084e",
+        "sourceURL": "https://pathpilot.ai",
+        "url": "https://pathpilot.ai/",
+        "statusCode": 200,
+        "contentType": "text/html; charset=utf-8",
+        "timezone": "America/New_York",
+        "proxyUsed": "basic",
+        "indexId": "b44956e0-5e13-48df-b1f3-21438379aba1",
+        "creditsUsed": 1,
+        "concurrencyLimited": false
+      }
+    },
+    "scrape_id": "019d1b66-eb49-720a-8af1-b7e83950084e",
+    "id": "OHJ0EhXFHNCQIiV04wl67",
+    "startedAt": "2026-03-23T15:53:42.671Z",
+    "endedAt": "2026-03-23T15:53:57.604Z",
+    "endpoint": "scrape",
+    "formState": {
+      "extractSetupCompleted": false,
+      "urls": [],
+      "extractSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "company_mission": {
+            "type": "string"
+          },
+          "supports_sso": {
+            "type": "boolean"
+          },
+          "is_open_source": {
+            "type": "boolean"
+          },
+          "is_in_yc": {
+            "type": "boolean"
+          }
+        }
+      },
+      "extractPrompt": "Extract the company details, following the schema.",
+      "enableWebSearch": false,
+      "constrainUrls": false,
+      "options": {
+        "onlyMainContent": false,
+        "parsePDF": true,
+        "stealthMode": false,
+        "excludeTags": [],
+        "includeTags": [],
+        "waitFor": "",
+        "timeout": "",
+        "maxAge": "2 days",
+        "ignoreSitemap": false,
+        "crawlEntireDomain": false,
+        "sitemap": "include",
+        "limit": "10",
+        "maxDepth": "",
+        "excludePaths": [],
+        "includePaths": [],
+        "includeSubdomains": false,
+        "search": "",
+        "scrapeContentFromSearchResults": true,
+        "timeBasedSearch": "",
+        "location": "",
+        "prompt": ""
+      },
+      "formats": [
+        "branding"
+      ],
+      "sources": [
+        "web"
+      ],
+      "categories": [],
+      "jsonSchema": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "company_name": {
+            "type": "string"
+          },
+          "company_description": {
+            "type": "string"
+          }
+        }
+      },
+      "jsonPrompt": "",
+      "agent": {},
+      "url": "pathpilot.ai",
+      "endpoint": "scrape"
+    },
+    "status": "success",
+    "version": "HRlutpotswO4nr2Q9Rvv5",
+    "isPreview": false
+  }
