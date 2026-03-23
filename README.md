@@ -199,10 +199,6 @@ After the `FUNCTION_RETURN`, the LLM streams its natural language response as `A
 
 To avoid showing the same information twice, the assistant text is passed through `stripMarkdownTables()` when cards were rendered in the same response. This function removes contiguous lines that start with `|` (the markdown table rows) while preserving all surrounding prose. A `cardsRenderedInResponse` flag tracks whether cards appeared during the current stream, so the table stripping only activates when cards are already visible.
 
-The screenshot below shows a job search query where the assistant's conversational text appears above the job cards, with the redundant markdown table already stripped:
-
-![Job search results showing cards with company logos, skill tags, and the assistant's prose above](./screenshots/basic-job-search-image.png)
-
 ---
 
 ## Phase 5: UI Additions
